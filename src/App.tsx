@@ -1,39 +1,7 @@
 import styles from './App.module.css';
 import { createEffect, createSignal, onMount } from 'solid-js';
 import { createSocket, obs, obsApi } from '../lib/obs';
-
-function Timer() {
-  let M = {};
-
-  M.id = 0;
-
-  M.scene = {};
-  M.source = {};
-
-  M.scene_item = ''
-  M.delay = 5
-  M.duration = {
-    show: 2,
-    hide: 5,
-    hide_random: 0,
-  }
-  M.repeat_ = {
-    times: 0,
-    reset: true,
-    reset_after: 60,
-  }
-  M.transition = {
-    override: false,
-    hide: nil,
-    hide_duration: 3,
-    show: nil,
-    show_duration: 3,
-  }
-  M.start_visible = false;
-  M.currently_visible = false;
-
-  return M;
-}
+import { Timer } from '../lib/Timer';
 
 function App() {
 
