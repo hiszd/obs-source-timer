@@ -10,7 +10,7 @@ function App() {
   const [source, setSource] = createSignal({ sceneItemId: 0, sourceName: 'Connecting...' });
 
   const [scenes, setScenes] = createSignal([{ sceneIndex: 0, sceneName: 'Connecting...' }]);
-  const [sources, setSources] = createSignal([{ sceneIndex: 0, sceneName: 'Connecting...' }]);
+  const [sources, setSources] = createSignal([{ sceneItemId: 0, sourceName: 'Connecting...' }]);
 
   const [connected, setConnected] = createSignal(false);
   obs.on('ConnectionOpened', () => { setConnected(true); });
@@ -19,7 +19,7 @@ function App() {
   obs.on('Identified', () => { setIdentified(true); });
 
   createEffect(() => {
-    if (scene() != 'Connecting...') {
+    if (scene().sceneName != 'Connecting...') {
       console.log('Scene: ' + scene());
       obsApi('sourcelist', { sceneName: scene().sceneName }).then((e) => {
         console.log(e);
@@ -62,6 +62,19 @@ function App() {
     return scene;
   }
 
+  const getSourceFromName = (sourceName: string) => {
+    let source = sources().find(e => e.sourceName == sourceName);
+    return source;
+  }
+
+  const hideSource = () => {
+    obsApi('setsceneitemenabled', { sceneName: scene().sceneName, sceneItemId: source().sceneItemId, sceneItemEnabled: false });
+  }
+
+  const showSource = () => {
+    obsApi('setsceneitemenabled', { sceneName: scene().sceneName, sceneItemId: source().sceneItemId, sceneItemEnabled: true });
+  }
+
   return (
     <div class={styles.App}>
       <header class={styles.header}>
@@ -78,13 +91,21 @@ function App() {
               <option value={scene.sceneName}>{scene.sceneIndex}: {scene.sceneName}</option>
             }</For>
           </select>
-          <select class={styles.selectList} size={6}>
+          <select class={styles.selectList} onChange={(e) => {
+            if (e.target.value != 'Connecting...') {
+              setSource(getSourceFromName(e.target.value));
+            }
+          }} size={6}>
             <For each={sources()}>{(source) =>
               <option value={source.sourceName}>{source.sceneItemId}: {source.sourceName}</option>
             }</For>
           </select>
         </div>
-      </header>
+        <div>
+          <input type='button' onClick={hideSource} value='Hide' />
+          <input type='button' onClick={showSource} value='Show' />
+        </div>
+      </header >
     </div >
   );
 }
