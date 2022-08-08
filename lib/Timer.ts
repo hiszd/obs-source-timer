@@ -1,6 +1,8 @@
 import { obsApi } from './obs';
+import { Scene, SceneItem } from './OBSTypes';
 
 type Duration = {
+  delay: number;
   show: number;
   hide: number;
   hide_random: number;
@@ -18,22 +20,18 @@ type TimerCallbacks = {
   hide: Function;
 }
 
-type TimerStore = {
-
+interface TimerProps {
   id: number;
-
-  scene: Object;
-  source: Object;
-
+  scene: Scene;
+  source: SceneItem;
   delay: number;
-  duration: Duration;
-  repeat: Repeat;
+  show_duration: number;
+  hide_duration: number;
   start_visible: boolean;
-  currently_visible: boolean;
 }
 
-export class TimerType {
-  constructor(props: TimerStore) {
+export class Timer {
+  constructor(props: TimerProps) {
     if (props.id) {
       this.id = props.id;
     }
@@ -43,79 +41,116 @@ export class TimerType {
     if (props.source) {
       this.source = props.source;
     }
+    this.duration = {
+      delay: 5,
+      show: 2,
+      hide: 5,
+      hide_random: 0,
+    }
     if (props.delay) {
-      this.delay = props.delay;
+      this.duration.delay = props.delay;
     }
-    if (props.duration) {
-      this.duration = props.duration;
+    if (props.show_duration) {
+      this.duration.show = props.show_duration;
     }
-    if (props.repeat) {
-      this.repeat = props.repeat;
+    if (props.hide_duration) {
+      this.duration.hide = props.hide_duration;
     }
     if (props.start_visible) {
       this.start_visible = props.start_visible;
     }
-    if (props.currently_visible) {
-      this.currently_visible = props.currently_visible;
+
+    console.log(JSON.stringify(this));
+
+    // Get visibility of source
+    obsApi('getsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId }).then((e) => {
+      console.log(e);
+      if (e) {
+        const { sceneitemenabled } = e;
+        this.currently_visible = sceneitemenabled;
+      }
+    });
+  }
+
+  public activate = () => {
+    if (this.duration.delay != 0) {
+      this.createDelayTimer()
+    } else {
+      if (this.start_visible) {
+        this.createShowTimer();
+      } else {
+        this.createHideTimer();
+      }
     }
   }
 
-  activate() {
-    if (this.delay != 0) {
-      createDelayTimer() // TODO make callback
-    }
-    if (this.duration.show != 0) {
-      createShowTimer() // TODO make callback
-    }
-
-    if (this.duration.hide != 0) {
-      createHideTimer() // TODO make callback
-    }
-  }
-
-
-
-  private createDelayTimer(callback: Function): number {
-    let tim = setTimeout(callback, this.delay);
+  private createDelayTimer = (): number => {
+    console.log('[Delay] ' + this.duration.delay);
+    let tim = setTimeout(this.callback.delay, (this.duration.delay * 1000));
     this.delay_timer = tim;
     return tim;
   }
 
-  private createShowTimer(callback: Function): number {
-    let tim = setTimeout(callback, this.duration.show);
+  private createShowTimer = (): number => {
+    console.log('[Show] ' + this.duration.show);
+    let tim = setTimeout(this.callback.show, (this.duration.show * 1000));
     this.show_timer = tim;
     return tim;
   }
 
-  //TODO add random hide
-  private createHideTimer(callback: Function): number {
-    let tim = setTimeout(callback, this.duration.hide);
+  // TODO add random hide
+  private createHideTimer = (): number => {
+    console.log('[Hide] ' + this.duration.hide);
+    let tim = setTimeout(this.callback.hide, (this.duration.hide * 1000));
     this.hide_timer = tim;
     return tim;
   }
 
-  id: number = 0;
-
-  scene: Object = {};
-  source: Object = {};
-
-  delay: number = 5;
-  delay_timer: number;
-  duration: Duration = {
-    show: 2,
-    hide: 5,
-    hide_random: 0,
+  private setVisibility = (vis: boolean) => {
+    obsApi('setsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId, sceneItemEnabled: vis });
   }
+
+  callback: TimerCallbacks = {
+    delay: () => {
+      if (this.start_visible) {
+        this.setVisibility(true);
+        this.createShowTimer();
+      } else {
+        this.setVisibility(false);
+        this.createHideTimer();
+      }
+    },
+
+    show: () => {
+      this.setVisibility(false);
+      this.createHideTimer();
+    },
+
+    hide: () => {
+      this.setVisibility(true);
+      this.createShowTimer();
+    },
+  }
+
+  public KillTimers = () => {
+    clearTimeout(this.delay_timer);
+    clearTimeout(this.show_timer);
+    clearTimeout(this.hide_timer);
+  }
+
+  id: number;
+
+  scene: Scene;
+  source: SceneItem;
+
+  duration: Duration;
   show_timer: number;
   hide_timer: number;
+  delay_timer: number;
 
-  repeat: Repeat = {
-    times: 0,
-    reset: false,
-    reset_after: 60,
-  }
+  repeat: Repeat;
 
-  start_visible: boolean = false;
-  currently_visible: boolean = false;
+  start_visible: boolean;
+  currently_visible: boolean;
 
 }

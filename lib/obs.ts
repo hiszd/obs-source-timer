@@ -1,4 +1,4 @@
-import OBSWebSocket from "obs-websocket-js";
+import OBSWebSocket, { OBSRequestTypes, OBSResponseTypes } from "obs-websocket-js";
 
 export const obs = new OBSWebSocket();
 
@@ -7,7 +7,7 @@ export async function createSocket() {
     const {
       obsWebSocketVersion,
       negotiatedRpcVersion
-    } = await obs.connect('ws://192.168.1.3:4455', 'VvGMDA9o1u2w4qKl');
+    } = await obs.connect('ws://10.1.1.136:4455', 'ToopwZ1GOqosHEVU');
     if (obs.identified) {
       console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
       return true;
@@ -18,7 +18,7 @@ export async function createSocket() {
   }
 }
 
-export async function obsApi(request, data) {
+export async function obsApi(request: string, data: OBSRequestTypes['GetSceneItemList'] | OBSRequestTypes['SetSceneItemEnabled'] | OBSRequestTypes['GetSceneItemEnabled']) {
   if (!obs.identified) {
     console.log('Not yet connected. Connecting now.');
     await createSocket();
@@ -34,24 +34,25 @@ export async function obsApi(request, data) {
         return scenes;
       });
       return { scenes }
-      break;
     case 'sourcelist':
       let sceneItems = undefined;
-      sceneItems = await obs.call('GetSceneItemList', data).then(({ sceneItems }) => {
+      sceneItems = await obs.call('GetSceneItemList', data as OBSRequestTypes['GetSceneItemList']).then(({ sceneItems }) => {
         // console.log("SceneItems: ");
         // console.log(sceneItems);
         return sceneItems;
       });
       return { sceneItems };
-      break;
     case 'setsceneitemenabled':
-      await obs.call('SetSceneItemEnabled', data).then(() => {
-        return;
+      await obs.call('SetSceneItemEnabled', data as OBSRequestTypes['SetSceneItemEnabled'])
+      return;
+    case 'getsceneitemenabled':
+      let sceneitemenabled = undefined;
+      sceneitemenabled = await obs.call('GetSceneItemEnabled', data as OBSRequestTypes['GetSceneItemEnabled']).then((sie) => {
+        return sie;
       });
-      break;
+      return { sceneitemenabled };
     default:
       console.log("Not a known option");
-      break;
+      return;
   }
-  return;
 }
