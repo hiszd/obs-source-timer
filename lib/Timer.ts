@@ -152,5 +152,4 @@ export class Timer {
 
   start_visible: boolean;
   currently_visible: boolean;
-
 }

@@ -2,12 +2,12 @@ import OBSWebSocket, { OBSRequestTypes, OBSResponseTypes } from "obs-websocket-j
 
 export const obs = new OBSWebSocket();
 
-export async function createSocket() {
+export async function createSocket(server: string, password: string) {
   try {
     const {
       obsWebSocketVersion,
       negotiatedRpcVersion
-    } = await obs.connect('ws://10.1.1.136:4455', 'ToopwZ1GOqosHEVU');
+    } = await obs.connect(server, password);
     if (obs.identified) {
       console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
       return true;

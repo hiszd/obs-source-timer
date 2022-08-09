@@ -6,7 +6,8 @@ import { Scene, SceneItem, DefaultSceneItem } from '../lib/OBSTypes';
 // import { getSuspenseContext } from 'solid-js/types/reactive/signal';
 
 function App() {
-
+  const server: string = 'ws://192.168.1.3:4455';
+  const password: string = 'VvGMDA9o1u2w4qKl';
   const [scene, setScene] = createSignal<Scene>({ sceneIndex: 0, sceneName: 'Connecting...' });
   const [source, setSource] = createSignal<SceneItem>(DefaultSceneItem());
 
@@ -51,7 +52,7 @@ function App() {
     let socketTimer = setInterval(() => {
       if (!connected() || !identified()) {
         console.log('creating socket');
-        createSocket();
+        createSocket(server, password);
       } else {
         clearInterval(socketTimer);
       }
@@ -85,8 +86,12 @@ function App() {
   }
 
   const killTimers = () => {
-    bob.KillTimers();
-    bob = null;
+    if (bob) {
+      if (bob.delay_timer) {
+        bob.KillTimers();
+        bob = null;
+      }
+    }
   }
 
   return (
