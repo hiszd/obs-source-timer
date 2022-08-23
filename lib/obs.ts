@@ -23,8 +23,8 @@ export async function obsApi(request: string, data: OBSRequestTypes['GetSceneIte
     console.log('Not yet connected. Connecting now.');
     await createSocket();
   }
-  console.log('request: ' + request);
-  console.log('data: ' + JSON.stringify(data));
+  // console.log('request: ' + request);
+  // console.log('data: ' + JSON.stringify(data));
   switch (request) {
     case 'scenelist':
       let scenes = undefined;

@@ -1,5 +1,13 @@
 import { obsApi } from './obs';
 import { Scene, SceneItem } from './OBSTypes';
+import { addProps } from './Timers';
+
+interface editProps {
+  delay: number;
+  show_duration: number;
+  hide_duration: number;
+  start_visible: boolean;
+}
 
 type Duration = {
   delay: number;
@@ -60,8 +68,6 @@ export class Timer {
       this.start_visible = props.start_visible;
     }
 
-    console.log(JSON.stringify(this));
-
     // Get visibility of source
     obsApi('getsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId }).then((e) => {
       console.log(e);
@@ -85,14 +91,14 @@ export class Timer {
   }
 
   private createDelayTimer = (): number => {
-    console.log('[Delay] ' + this.duration.delay);
+    console.log('[Delay][' + this.source.sourceName + '] ' + this.duration.delay);
     let tim = setTimeout(this.callback.delay, (this.duration.delay * 1000));
     this.delay_timer = tim;
     return tim;
   }
 
   private createShowTimer = (): number => {
-    console.log('[Show] ' + this.duration.show);
+    console.log('[Show][' + this.source.sourceName + '] ' + this.duration.show);
     let tim = setTimeout(this.callback.show, (this.duration.show * 1000));
     this.show_timer = tim;
     return tim;
@@ -100,7 +106,7 @@ export class Timer {
 
   // TODO add random hide
   private createHideTimer = (): number => {
-    console.log('[Hide] ' + this.duration.hide);
+    console.log('[Hide][' + this.source.sourceName + '] ' + this.duration.hide);
     let tim = setTimeout(this.callback.hide, (this.duration.hide * 1000));
     this.hide_timer = tim;
     return tim;
@@ -132,10 +138,19 @@ export class Timer {
     },
   }
 
-  public KillTimers = () => {
+  public killTimers = (): void => {
     clearTimeout(this.delay_timer);
     clearTimeout(this.show_timer);
     clearTimeout(this.hide_timer);
+  }
+
+  public editTimer = (props: editProps): void => {
+    this.duration.delay = props.delay;
+    this.duration.show = props.show_duration;
+    this.duration.hide = props.hide_duration;
+    this.start_visible = props.start_visible;
+    this.killTimers();
+    this.activate();
   }
 
   id: number;

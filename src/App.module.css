@@ -13,11 +13,11 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  /* justify-content: center; */
+  align-items: stretch;
   padding-top: 5rem;
   font-size: calc(10px + 2vmin);
   color: white;
+  padding-inline: 14%;
 }
 
 .title span {
@@ -38,7 +38,9 @@
   color: white;
   min-width: 15rem;
   min-height: 10rem;
+  width: 100%;
   border: solid 2px hsla(0deg 100% 100% / 0.2);
+  box-sizing: border-box;
 }
 
 .selectList option {
@@ -59,4 +61,12 @@
 
 .selectList option:last-child {
   border-bottom: none;
+}
+
+.contdiv {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  width: max-content;
+  margin-left: auto;
+  margin-right: auto;
 }

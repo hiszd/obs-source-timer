@@ -11,3 +11,94 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+label {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+.timer-input-area {
+  width: max-content;
+  /* display: flex; */
+  /* flex-direction: column; */
+  /* flex-grow: 1; */
+  /* align-items: end; */
+  /* max-width: 30rem; */
+  /* align-self: start; */
+  /* min-width: max-content; */
+  /* float: right; */
+  white-space: nowrap;
+}
+
+.timer-input-area > div {
+  display: inline-block;
+  margin-left: 2rem;
+}
+
+.timer-input-area label {
+  font-size: 1rem;
+  line-height: 1rem;
+  margin-right: 0.5rem;
+  /* border-top: 1px solid hsla(0deg 0% 100% / 0.3); */
+}
+
+label.overline {
+  border-bottom: 1px solid hsla(0deg 0% 100% / 0.3);
+  display: inline-block;
+}
+
+.timer-input-area > label {
+  width: 100%;
+  padding-inline: 2rem;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2rem;
+  margin-right: unset;
+}
+
+.timer-input-area > div:nth-child(2) {
+  /* border-top: 1px solid hsla(0deg 0% 100% / 0.3); */
+  /* width: 100%; */
+}
+
+.timer-list input,
+.timer-input-area input {
+  background-color: #282c34;
+  color: white;
+  border: solid 2px hsla(0deg 100% 100% / 0.2);
+}
+
+.timer-list input:hover,
+.timer-input-area input:hover {
+  background-color: #343d48;
+}
+
+.timer-list input[type="button"],
+.timer-input-area input[type="button"] {
+}
+
+input:focus {
+  outline: none;
+}
+
+.container {
+  float: right;
+  width: max-content;
+}
+
+.cont1 {
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+.cont2 {
+  padding-top: 4rem;
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+}
