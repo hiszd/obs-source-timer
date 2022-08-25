@@ -7,17 +7,26 @@ import { Timers } from '../lib/Timers';
 import { Scene, SceneItem, DefaultSceneItem } from '../lib/OBSTypes';
 // import { getSuspenseContext } from 'solid-js/types/reactive/signal';
 
+enum connectionState {
+  CONNECTING,
+  CONNECTED,
+  FAILED,
+  DISCONNECTED
+}
+
 function App() {
-  const server: string = 'ws://192.168.1.3:4455';
-  const password: string = 'VvGMDA9o1u2w4qKl';
+  let server: string = 'ws://192.168.1.3:4455';
+  let password: string = 'VvGMDA9o1u2w4qKl';
   const [scene, setScene] = createSignal<Scene>({ sceneIndex: 0, sceneName: 'Connecting...' });
   const [source, setSource] = createSignal<SceneItem>(DefaultSceneItem());
 
   const [scenes, setScenes] = createSignal<[Scene]>([{ sceneIndex: 0, sceneName: 'Connecting...' }]);
   const [sources, setSources] = createSignal<[SceneItem]>([DefaultSceneItem()]);
 
+  const [connectionStatus, setConnectionStatus] = createSignal<connectionState>(connectionState.DISCONNECTED);
+
   const [connected, setConnected] = createSignal(false);
-  obs.on('ConnectionOpened', () => { setConnected(true); });
+  obs.on('ConnectionOpened', () => { setConnected(true); setConnectionStatus(connectionState.CONNECTED); });
 
   const [identified, setIdentified] = createSignal(false);
   obs.on('Identified', () => { setIdentified(true); });
@@ -50,15 +59,15 @@ function App() {
   let input_edit_delay, input_edit_show_duration, input_edit_hide_duration, input_edit_start_visible;
 
   onMount(() => {
-    console.log('Mounted and creating socket');
-    let socketTimer = setInterval(() => {
-      if (!connected() || !identified()) {
-        console.log('creating socket');
-        createSocket(server, password);
-      } else {
-        clearInterval(socketTimer);
-      }
-    }, 4000);
+    console.log('Mounted');
+    // let socketTimer = setInterval(() => {
+    //   if (!connected() || !identified()) {
+    //     console.log('creating socket');
+    //     createSocket(server, password);
+    //   } else {
+    //     clearInterval(socketTimer);
+    //   }
+    // }, 4000);
   });
 
   onCleanup(() => {
@@ -89,7 +98,21 @@ function App() {
           Welcome to <span>OBS Source Timer</span>
         </h1>
         <div class={styles.contdiv}>
-          <div class='cont1'>
+          {connected ? (
+            <div class='cont1'>
+              <label style='margin-right: 1rem;'>Server: </label>
+              <input onChange={(e) => { server = e.target.value; console.log(server); }} style='width: max-content; min-width: 12.5rem; margin-right: 2rem;' type='text' placeholder='ws://192.168.1.1:4455' />
+              <label style='margin-right: 1rem;'>Password: </label>
+              <input onChange={(e) => { password = e.target.value; console.log(password); }} type='text' placeholder='passwordnotsafe' />
+              <input style='margin-left: 1rem;' type='button' value='Connect' onClick={(e) => {
+                console.log('creating socket');
+                createSocket(server, password);
+              }} />
+            </div>
+          ) : (
+            <div></div>
+          )}
+          <div class='cont2'>
             <div style='width: 70%;'>
               <div style='display: inline-block; width: 30%;'>
                 <label style='display: block' class='overline'>Scenes</label>
