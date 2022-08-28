@@ -18,10 +18,14 @@ export async function createSocket(server: string, password: string) {
   }
 }
 
+export function removeSocket() {
+  obs.disconnect();
+}
+
 export async function obsApi(request: string, data: OBSRequestTypes['GetSceneItemList'] | OBSRequestTypes['SetSceneItemEnabled'] | OBSRequestTypes['GetSceneItemEnabled']) {
   if (!obs.identified) {
-    console.log('Not yet connected. Connecting now.');
-    await createSocket();
+    console.log('Not yet connected.');
+    return;
   }
   // console.log('request: ' + request);
   // console.log('data: ' + JSON.stringify(data));

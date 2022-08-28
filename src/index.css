@@ -78,8 +78,19 @@ label.overline {
 .timer-input-area input[type="button"] {
 }
 
+input[type="button"] {
+  background-color: #282c34;
+  color: white;
+  border: solid 2px hsla(0deg 100% 100% / 0.2);
+}
+
+input[type="button"]:hover {
+  background-color: #343d48;
+}
+
 input:focus {
   outline: none;
+  background-color: #343d48;
 }
 
 .container {
@@ -95,8 +106,37 @@ input:focus {
   white-space: nowrap;
 }
 
+.status-div {
+  width: 20rem;
+  background-color: hsla(0deg 0% 100% / 0.3);
+  border-radius: 0.5rem;
+  border: 3px solid hsla(190deg 30% 20% / 0.7);
+  margin-bottom: 1rem;
+  color: black;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.status-h4 {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  font-size: 1.25rem;
+}
+
+.status-h4::before {
+  content: "Status: ";
+}
+
 .cont2 {
-  padding-top: 4rem;
+  padding-top: 2rem;
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+.cont3 {
+  padding-top: 2rem;
   margin-left: auto;
   display: flex;
   flex-direction: row;
