@@ -58,6 +58,10 @@ export class Timers {
     }
   }
 
+  public dump = (): Object => {
+    return JSON.stringify(this.timers);
+  }
+
   public hasTimer = (scn: Scene, src: SceneItem): Timer | null => {
     if (this.timers[scn.sceneIndex][src.sceneItemId] != undefined) {
       return this.timers[scn.sceneIndex][src.sceneItemId];

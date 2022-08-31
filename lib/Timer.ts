@@ -1,6 +1,7 @@
 import { obsApi } from './obs';
 import { Scene, SceneItem } from './OBSTypes';
 import { addProps } from './Timers';
+import { createSignal } from 'solid-js';
 
 interface editProps {
   delay: number;
@@ -40,9 +41,7 @@ interface TimerProps {
 
 export class Timer {
   constructor(props: TimerProps) {
-    if (props.id) {
-      this.id = props.id;
-    }
+    this.id = props.id;
     if (props.scene) {
       this.scene = props.scene;
     }
@@ -67,15 +66,16 @@ export class Timer {
     if (props.start_visible) {
       this.start_visible = props.start_visible;
     }
+    this.currently_visible = false;
 
     // Get visibility of source
-    obsApi('getsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId }).then((e) => {
-      console.log(e);
-      if (e) {
-        const { sceneitemenabled } = e;
-        this.currently_visible = sceneitemenabled;
-      }
-    });
+    // obsApi('getsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId }).then((e) => {
+    // console.log(e);
+    // if (e) {
+    // const { sceneitemenabled } = e;
+    // this.currently_visible = sceneitemenabled;
+    // }
+    // });
   }
 
   public activate = () => {
@@ -114,6 +114,8 @@ export class Timer {
 
   private setVisibility = (vis: boolean) => {
     obsApi('setsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId, sceneItemEnabled: vis });
+    this.currently_visible = vis;
+    this.emit('visibilityChange', vis);
   }
 
   callback: TimerCallbacks = {
@@ -151,6 +153,31 @@ export class Timer {
     this.start_visible = props.start_visible;
     this.killTimers();
     this.activate();
+  }
+
+  /// active subscribers
+  private subscribers: {} = {};
+
+  /// subscribe to event
+  public sub = (event: string, func: Function) => {
+    if (!this.subscribers[event]) {
+      this.subscribers[event] = [];
+    }
+    this.subscribers[event].push(func);
+  }
+
+  /// unsubscribe from event
+  public unsub = (event: string, fun: Function) => {
+    console.log(this.subscribers[event]);
+    this.subscribers[event] = this.subscribers[event].filter((e: Function) => e != fun);
+    console.log(this.subscribers[event]);
+  }
+
+  /// emit event to all subscribers
+  private emit(event: string, state: string | number | boolean) {
+    this.subscribers[event].forEach((e: Function, ind: number) => {
+      e(state);
+    });
   }
 
   id: number;

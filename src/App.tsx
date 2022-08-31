@@ -1,11 +1,11 @@
 import styles from './App.module.css';
-import { createEffect, createSignal, onCleanup, onMount, Switch, Match } from 'solid-js';
+import { For, createEffect, createSignal, onCleanup, onMount, Switch, Match, Accessor } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { createSocket, removeSocket, obs, obsApi } from '../lib/obs';
 import { Timer } from '../lib/Timer';
 import { Timers } from '../lib/Timers';
 import { Scene, SceneItem } from '../lib/OBSTypes';
-// import { getSuspenseContext } from 'solid-js/types/reactive/signal';
+
 
 const DefaultScene = { sceneIndex: 0, sceneName: '' };
 const DefaultSceneItem = {
@@ -58,6 +58,7 @@ function App() {
 
   const [connectionStatus, setConnectionStatus] = createSignal<connectionState>(connectionState.DISCONNECTED);
 
+  /// Keep the state of the connection to server
   const [connected, setConnected] = createSignal(false);
   obs.on('ConnectionClosed', () => {
     console.log('connection closed');
@@ -97,10 +98,30 @@ function App() {
         <input type="button" value="Disconnect" onClick={() => {
           removeSocket();
         }} />
+        <input type="button" value="Save Timers" onClick={() => {
+          // TODO save to file when button is pressed
+          // const dmp = tims.dump()
+          // savetofile(dmp);
+        }} />
+        <input type="button" value="Load Timers" onClick={() => {
+          // TODO load from file when button is pressed
+          // const timrs = JSON.parse(loadfromfile(dmp));
+          // timrs.forEach((e) => {
+          //   tims.addTimer({
+          //     scene: e.scene,
+          //     source: e.source,
+          //     delay: e.duration.delay,
+          //     show_duration: e.duration.show,
+          //     hide_duration: e.duration.hide,
+          //     start_visible: e.start_visible,
+          //   });
+          // });
+        }} />
       </div>
     );
   });
 
+  /// The server area of the webpage
   const [serverArea, setServerArea] = createSignal(
     <div class='cont1'>
       <label style='margin-right: 1rem;'>Server: </label>
@@ -114,11 +135,13 @@ function App() {
     </div>
   )
 
+  /// Monitor identification by server
   const [identified, setIdentified] = createSignal(false);
   obs.on('Identified', () => { setIdentified(true); });
 
+  /// Get sources when the scene has been loaded
   createEffect(() => {
-    if (scene().sceneName != 'Connecting...') {
+    if (scene().sceneName != '') {
       console.log('getting sources');
       obsApi('sourcelist', { sceneName: scene().sceneName }).then((e) => {
         setSource(e.sceneItems[0] as unknown as SceneItem);
@@ -127,6 +150,7 @@ function App() {
     }
   });
 
+  /// Get scenes once identified by the server
   createEffect(() => {
     if (identified() && connected()) {
       console.log('getting scenes: ' + identified() + ' ' + connected());
@@ -145,6 +169,9 @@ function App() {
   });
 
   onCleanup(() => {
+    // TODO save to file automatically when the session dumps
+    // const dmp = tims.dump()
+    // savetofile(dmp);
     tims.clean();
   });
 
@@ -158,12 +185,15 @@ function App() {
     return source;
   }
 
+  /// Currently selected timer
   const [timer, setTimer] = createSignal<Timer>();
 
+  /// Array of timers currently active
   let tims = new Timers();
 
+  /// List of timers to be used to show the webpage
+  /// this tracks along with tims
   const [timerList, setTimerList] = createStore<Timer[]>([]);
-  // <div style='margin-top: 4rem; margin-left: auto; margin-right: auto; display: flex; flex-direction: row; white-space: nowrap;'>
 
   return (
     <div class={styles.App}>
@@ -201,11 +231,11 @@ function App() {
               <div style='display: inline-block; width: 30%;'>
                 <label style='display: block' class='overline'>Scenes</label>
                 <select class={styles.selectList} onChange={(e) => {
-                  if (e.target.value != 'Connecting...') {
+                  if (e.target.value != '') {
                     setScene(getSceneFromName(e.target.value));
                   }
                 }} size={6}>
-                  <For each={scenes()}>{(scene: Scene) =>
+                  <For each={scenes()}>{(scene: Scene, ind: Accessor<number>) =>
                     <Switch>
                       <Match when={scene.sceneName != ''}>
                         <option value={scene.sceneName}>{scene.sceneIndex}: {scene.sceneName}</option>
@@ -217,7 +247,7 @@ function App() {
               <div style='display: inline-block; width: 70%;'>
                 <label style='display: block' class='overline'>Sources</label>
                 <select class={styles.selectList} onChange={(e) => {
-                  if (e.target.value != 'Connecting...') {
+                  if (e.target.value != '') {
                     setSource(getSourceFromName(e.target.value));
                   }
                 }} size={6}>
@@ -263,6 +293,17 @@ function App() {
                     start_visible: input_start_visible.checked,
                   });
                   setTimerList([ind], tim);
+                  tim.sub('visibilityChange', (s) => {
+                    let ele = document.querySelector("option[id='" + tim.id + "']");
+                    let style = "color: white;";
+                    if (s == false) {
+                      ele.innerHTML = tim.scene.sceneName + ': ' + tim.source.sourceName + " <em>I</em>";
+                      style = "color: grey;";
+                    } else {
+                      ele.innerHTML = tim.scene.sceneName + ': ' + tim.source.sourceName + " <em>V</em>";
+                    }
+                    ele.setAttribute("style", style);
+                  });
                 }} />
               </div>
             </div>
@@ -282,7 +323,7 @@ function App() {
                   input_edit_start_visible.checked = timer.start_visible;
                 }} size={6}>
                   <For each={timerList}>{(tim: Timer) =>
-                    <option value={tim.scene.sceneIndex + ',' + tim.source.sceneItemId}>{tim.scene.sceneName}: {tim.source.sourceName}</option>
+                    <option id={tim.id} value={tim.scene.sceneIndex + ',' + tim.source.sceneItemId}>{tim.scene.sceneName}: {tim.source.sourceName}</option>
                   }</For>
                 </select>
                 <input type='button' value='Remove Timer' onClick={() => {
