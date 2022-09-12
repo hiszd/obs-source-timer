@@ -1,0 +1,27 @@
+.show {
+  animation: show 0.5s forwards;
+  display: block;
+}
+
+@keyframes show {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.hide {
+  animation: hide 0.5s forwards;
+  display: block;
+}
+
+@keyframes hide {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

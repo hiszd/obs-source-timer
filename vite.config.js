@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
+import mix from 'vite-plugin-mix';
 
 export default defineConfig({
-  plugins: [solidPlugin()],
+  plugins: [solidPlugin(), mix({ handler: './api.ts', }),],
   server: {
     port: 3000,
   },

@@ -1,11 +1,25 @@
 import styles from './App.module.css';
+import "bootstrap-icons/font/bootstrap-icons.css";
 import { For, createEffect, createSignal, onCleanup, onMount, Switch, Match, Accessor } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { createSocket, removeSocket, obs, obsApi } from '../lib/obs';
 import { Timer } from '../lib/Timer';
 import { Timers } from '../lib/Timers';
 import { Scene, SceneItem } from '../lib/OBSTypes';
+import { Toaster } from './Toaster';
 
+
+const url = 'http://dev.noiz.tech:3000/';
+
+
+const fetchopts: RequestInit = {
+  method: 'POST',
+  mode: 'same-origin',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: undefined,
+}
 
 const DefaultScene = { sceneIndex: 0, sceneName: '' };
 const DefaultSceneItem = {
@@ -45,6 +59,60 @@ enum connectionState {
   CONNECTED,
   FAILED,
   DISCONNECTED
+}
+
+const save = async (content: Object, server: string) => {
+  try {
+    let opts = fetchopts;
+    let serv = {};
+    serv[server] = content;
+    opts.body = JSON.stringify({ file: JSON.stringify(serv) });
+    fetch(url + 'api/savefile', opts)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('Success:', data);
+        return content;
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+const load = async (type: 'autoload' | 'load') => {
+  try {
+    let opts = fetchopts;
+    if (type == 'autoload') {
+      opts.body = JSON.stringify({ file: undefined, req: 'autoload' });
+    } else if (type == 'load') {
+      opts.body = JSON.stringify({ file: undefined, req: 'load' });
+    }
+    return fetch(url + 'api/loadfile', opts)
+      .then((response) => response.json())
+      .then((data: { file: string }) => {
+        // console.log('Success:', data.file);
+        // console.log(JSON.parse(data.file));
+        return JSON.parse(data.file)
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+const timSub = (s: string, ele: Element, sceneName: string, sourceName: string) => {
+  let style = "color: white;";
+  if (s == false) {
+    ele.innerHTML = "<i class='bi bi-eye-slash-fill'></i>  " + sceneName + ': ' + sourceName;
+    style = "color: grey;";
+  } else {
+    ele.innerHTML = "<i class='bi bi-eye-fill'></i>  " + sceneName + ': ' + sourceName;
+  }
+  ele.setAttribute("style", style);
 }
 
 function App() {
@@ -96,26 +164,50 @@ function App() {
     setServerArea(
       <div>
         <input type="button" value="Disconnect" onClick={() => {
-          removeSocket();
+          tims.close().then(() => {
+            removeSocket();
+            setTimChange(false);
+          });
         }} />
-        <input type="button" value="Save Timers" onClick={() => {
-          // TODO save to file when button is pressed
-          // const dmp = tims.dump()
-          // savetofile(dmp);
+        <input style='margin-left: 1rem;' type="button" value="Save Timers" onClick={() => {
+          setTimChange(false);
+          save(tims.dump(), server).then(() => {
+            Toasty.toast('Timers were saved!');
+          });
         }} />
-        <input type="button" value="Load Timers" onClick={() => {
-          // TODO load from file when button is pressed
-          // const timrs = JSON.parse(loadfromfile(dmp));
-          // timrs.forEach((e) => {
-          //   tims.addTimer({
-          //     scene: e.scene,
-          //     source: e.source,
-          //     delay: e.duration.delay,
-          //     show_duration: e.duration.show,
-          //     hide_duration: e.duration.hide,
-          //     start_visible: e.start_visible,
-          //   });
-          // });
+        <input style='margin-left: 1rem;' type="button" value="Load Timers" onClick={() => {
+          load('load').then((e: Object) => {
+            setTimChange(false);
+            console.log(e);
+            if (e.hasOwnProperty(server)) {
+              const timrs = JSON.parse(e[server]);
+              for (let a in timrs) {
+                console.log(timrs[a]);
+                for (let t in timrs[a]) {
+                  if (!tims.hasTimer(timrs[a][t].scene, timrs[a][t].source)) {
+                    let ind = timerList.length;
+                    let timr = timrs[a][t];
+                    let tim = tims.addTimer({
+                      scene: timr.scene,
+                      source: timr.source,
+                      delay: timr.duration.delay,
+                      show_duration: timr.duration.show,
+                      hide_duration: timr.duration.hide,
+                      start_visible: timr.start_visible,
+                    });
+                    setTimerList([ind], tim);
+                    tim.sub('visibilityChange', (s: string) => {
+                      let ele = document.querySelector("option[id='" + tim.id + "']");
+                      timSub(s, ele, tim.scene.sceneName, tim.source.sourceName);
+                    });
+                  }
+                }
+              }
+              Toasty.toast('Timers loaded successfully!');
+            } else {
+              Toasty.toast('No timers saved for this server');
+            }
+          });
         }} />
       </div>
     );
@@ -139,6 +231,25 @@ function App() {
   const [identified, setIdentified] = createSignal(false);
   obs.on('Identified', () => { setIdentified(true); });
 
+  const getSources = (e?) => {
+    if (e && e.sceneName == scene().sceneName) {
+      console.log('getting sources');
+      obsApi('sourcelist', { sceneName: scene().sceneName }).then((e) => {
+        setSource(e.sceneItems[0] as unknown as SceneItem);
+        setSources(e.sceneItems as unknown as [SceneItem]);
+      });
+    } else {
+      console.log('getting sources');
+      obsApi('sourcelist', { sceneName: scene().sceneName }).then((e) => {
+        setSource(e.sceneItems[0] as unknown as SceneItem);
+        setSources(e.sceneItems as unknown as [SceneItem]);
+      });
+    }
+  }
+  obs.on('SceneItemCreated', getSources);
+  obs.on('SceneItemRemoved', getSources);
+  obs.on('SceneItemListReindexed', getSources);
+
   /// Get sources when the scene has been loaded
   createEffect(() => {
     if (scene().sceneName != '') {
@@ -149,6 +260,20 @@ function App() {
       });
     }
   });
+
+  const getScenes = () => {
+    if (identified() && connected()) {
+      console.log('getting scenes');
+      obsApi('scenelist').then((e) => {
+        setScene(e.scenes[0] as unknown as Scene);
+        setScenes(e.scenes as unknown as [Scene]);
+      });
+    }
+  }
+  obs.on('SceneCreated', getScenes);
+  obs.on('SceneRemoved', getScenes);
+  obs.on('SceneNameChanged', getScenes);
+  obs.on('SceneListChanged', getScenes);
 
   /// Get scenes once identified by the server
   createEffect(() => {
@@ -166,12 +291,15 @@ function App() {
 
   onMount(() => {
     console.log('Mounted');
+    window.onbeforeunload = (event) => {
+      if (timchange()) {
+        event.preventDefault();
+        return event.returnValue = "Don't you want to save your timers before you go?";
+      }
+    }
   });
 
   onCleanup(() => {
-    // TODO save to file automatically when the session dumps
-    // const dmp = tims.dump()
-    // savetofile(dmp);
     tims.clean();
   });
 
@@ -187,6 +315,8 @@ function App() {
 
   /// Currently selected timer
   const [timer, setTimer] = createSignal<Timer>();
+  /// Has timers changed since save/load
+  const [timchange, setTimChange] = createSignal<boolean>(false);
 
   /// Array of timers currently active
   let tims = new Timers();
@@ -195,8 +325,11 @@ function App() {
   /// this tracks along with tims
   const [timerList, setTimerList] = createStore<Timer[]>([]);
 
+  let Toasty: any;
+
   return (
     <div class={styles.App}>
+      <Toaster helpers={(e: any) => Toasty = e} />
       <header class={styles.header}>
         <h1 class={styles.title}>
           Welcome to <span>OBS Source Timer</span>
@@ -208,9 +341,14 @@ function App() {
                 Connecting
               </h4>
             </Match>
-            <Match when={connectionStatus() == connectionState.CONNECTED}>
+            <Match when={connectionStatus() == connectionState.CONNECTED && timchange() == false}>
               <h4 class='status-h4'>
                 Connected
+              </h4>
+            </Match>
+            <Match when={connectionStatus() == connectionState.CONNECTED && timchange() == true}>
+              <h4 class='status-h4'>
+                Connected, Timers Unsaved
               </h4>
             </Match>
             <Match when={connectionStatus() == connectionState.FAILED}>
@@ -266,7 +404,7 @@ function App() {
               <div style='display: flex; justify-content: end;'>
                 <div>
                   <label>Delay: </label>
-                  <input ref={input_delay} type='number' min='0.5' max='20.0' pattern='[0-9]{2}.[0-9]' step='0.5' value='5.0' />
+                  <input ref={input_delay} type='number' min='0.5' max='20.0' pattern='[0-9]{2}.[0-9]' step='0.5' value='0.0' />
                 </div>
               </div>
               <div style='display: flex; justify-content: end;'>
@@ -283,27 +421,23 @@ function App() {
               </div>
               <div style='display: flex; justify-content: end;'>
                 <input type='button' value='Add Timer' onClick={() => {
+                  setTimChange(true);
                   let ind = timerList.length;
-                  let tim = tims.addTimer({
-                    scene: scene(),
-                    source: source(),
-                    delay: input_delay.value,
-                    show_duration: input_show_duration.value,
-                    hide_duration: input_hide_duration.value,
-                    start_visible: input_start_visible.checked,
-                  });
-                  setTimerList([ind], tim);
-                  tim.sub('visibilityChange', (s) => {
-                    let ele = document.querySelector("option[id='" + tim.id + "']");
-                    let style = "color: white;";
-                    if (s == false) {
-                      ele.innerHTML = tim.scene.sceneName + ': ' + tim.source.sourceName + " <em>I</em>";
-                      style = "color: grey;";
-                    } else {
-                      ele.innerHTML = tim.scene.sceneName + ': ' + tim.source.sourceName + " <em>V</em>";
-                    }
-                    ele.setAttribute("style", style);
-                  });
+                  if (scene().sceneName != '' && source().sourceName != '') {
+                    let tim = tims.addTimer({
+                      scene: scene(),
+                      source: source(),
+                      delay: input_delay.value,
+                      show_duration: input_show_duration.value,
+                      hide_duration: input_hide_duration.value,
+                      start_visible: input_start_visible.checked,
+                    });
+                    setTimerList([ind], tim);
+                    tim.sub('visibilityChange', (s: string) => {
+                      let ele = document.querySelector("option[id='" + tim.id + "']");
+                      timSub(s, ele, tim.scene.sceneName, tim.source.sourceName);
+                    });
+                  }
                 }} />
               </div>
             </div>
@@ -323,7 +457,7 @@ function App() {
                   input_edit_start_visible.checked = timer.start_visible;
                 }} size={6}>
                   <For each={timerList}>{(tim: Timer) =>
-                    <option id={tim.id} value={tim.scene.sceneIndex + ',' + tim.source.sceneItemId}>{tim.scene.sceneName}: {tim.source.sourceName}</option>
+                    <option style="display: none;" id={tim.id} value={tim.scene.sceneIndex + ',' + tim.source.sceneItemId}>{tim.scene.sceneName}: {tim.source.sourceName}</option>
                   }</For>
                 </select>
                 <input type='button' value='Remove Timer' onClick={() => {
@@ -363,11 +497,12 @@ function App() {
               </div>
               <div style='display: flex; justify-content: end;'>
                 <input type='button' value='Edit Timer' onClick={() => {
+                  setTimChange(true);
                   tims.hasTimer(timer().scene, timer().source).editTimer({
                     delay: input_edit_delay.value,
                     show_duration: input_edit_show_duration.value,
                     hide_duration: input_edit_hide_duration.value,
-                    start_visible: input_edit_start_visible.value,
+                    start_visible: input_edit_start_visible.checked,
                   });
                 }} />
               </div>

@@ -69,17 +69,21 @@ export class Timer {
     this.currently_visible = false;
 
     // Get visibility of source
-    // obsApi('getsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId }).then((e) => {
-    // console.log(e);
-    // if (e) {
-    // const { sceneitemenabled } = e;
-    // this.currently_visible = sceneitemenabled;
-    // }
-    // });
+    obsApi('getsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId }).then((e) => {
+      if (e) {
+        const { sceneItemEnabled } = e.sceneitemenabled;
+        this.setVisibility(sceneItemEnabled);
+      }
+    });
   }
 
   public activate = () => {
     if (this.duration.delay != 0) {
+      if (this.currently_visible && !this.start_visible) {
+        this.setVisibility(false);
+      } else if (!this.currently_visible && this.start_visible) {
+        this.setVisibility(true);
+      }
       this.createDelayTimer()
     } else {
       if (this.start_visible) {
@@ -112,10 +116,24 @@ export class Timer {
     return tim;
   }
 
-  private setVisibility = (vis: boolean) => {
-    obsApi('setsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId, sceneItemEnabled: vis });
-    this.currently_visible = vis;
-    this.emit('visibilityChange', vis);
+  public setVisibility = (vis: boolean) => {
+    obsApi('setsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId, sceneItemEnabled: vis }).then(() => {
+      this.currently_visible = vis;
+      this.emit('visibilityChange', vis);
+      return;
+    });
+    return;
+  }
+
+  public setVisibilityAsync = async (vis: boolean) => {
+    try {
+      this.currently_visible = vis;
+      this.emit('visibilityChange', vis);
+      return await obsApi('setsceneitemenabled', { sceneName: this.scene.sceneName, sceneItemId: this.source.sceneItemId, sceneItemEnabled: vis });
+    } catch (err) {
+      console.error(err);
+      return;
+    }
   }
 
   callback: TimerCallbacks = {

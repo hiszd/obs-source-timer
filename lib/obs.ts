@@ -22,7 +22,7 @@ export function removeSocket() {
   obs.disconnect();
 }
 
-export async function obsApi(request: string, data: OBSRequestTypes['GetSceneItemList'] | OBSRequestTypes['SetSceneItemEnabled'] | OBSRequestTypes['GetSceneItemEnabled']) {
+export async function obsApi(request: string, data?: OBSRequestTypes['GetSceneItemList'] | OBSRequestTypes['SetSceneItemEnabled'] | OBSRequestTypes['GetSceneItemEnabled']) {
   if (!obs.identified) {
     console.log('Not yet connected.');
     return;

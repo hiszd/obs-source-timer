@@ -16,7 +16,7 @@ export class Timers {
 
   public timerCount: number = 0;
 
-  public timers: Object = new Object;
+  public timers: { [index: number]: { [index: number]: Timer } } = {};
 
   public addTimer = (tim: addProps): Timer => {
     let addtim = new Timer({
@@ -42,7 +42,7 @@ export class Timers {
   public removeTimer = (scn: Scene, src: SceneItem): boolean => {
     if (this.timers[scn.sceneIndex][src.sceneItemId]) {
       this.timers[scn.sceneIndex][src.sceneItemId].killTimers();
-      this.timers[scn.sceneIndex][src.sceneItemId] = undefined;
+      delete this.timers[scn.sceneIndex][src.sceneItemId];
       console.log(JSON.stringify(this.timers));
       return true;
     }
@@ -50,21 +50,41 @@ export class Timers {
   }
 
   public clean = (): void => {
-    for (let tim in Object.keys(this.timers)) {
-      // this.timers[tim].killTimers();
+    for (let tim in this.timers) {
       for (let tom in this.timers[tim]) {
         this.timers[tim][tom].killTimers();
       }
     }
   }
 
+  public close = async () => {
+    try {
+      for (let tim in this.timers) {
+        for (let tom in this.timers[tim]) {
+          this.timers[tim][tom].setVisibilityAsync(false);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
   public dump = (): Object => {
-    return JSON.stringify(this.timers);
+    let timers = JSON.parse(JSON.stringify(this.timers));
+    for (let timerList in timers) {
+      for (let timer in timers[timerList]) {
+        delete timers[timerList][timer].subscribers;
+      }
+    }
+    return JSON.stringify(timers);
   }
 
   public hasTimer = (scn: Scene, src: SceneItem): Timer | null => {
-    if (this.timers[scn.sceneIndex][src.sceneItemId] != undefined) {
-      return this.timers[scn.sceneIndex][src.sceneItemId];
+    if (this.timers[scn.sceneIndex] != undefined) {
+      if (this.timers[scn.sceneIndex][src.sceneItemId] != undefined) {
+        return this.timers[scn.sceneIndex][src.sceneItemId];
+      }
     }
     return null;
   }
